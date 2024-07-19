@@ -2,7 +2,6 @@ const net = require("net");
 const fs = require("fs");
 const path = require("path");
 
-// Simple MIME type detection
 function getMimeType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {
@@ -33,13 +32,10 @@ const server = net.createServer((socket) => {
       "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found";
 
     switch (route) {
-      // ... (other routes remain the same)
-
       case "/files": {
         const fileName = reqPath.split("/")[2];
         const directory = "C:/tmp";
 
-        // Read the directory
         fs.readdir(directory, (err, files) => {
           if (err) {
             console.error("Error reading directory:", err);
@@ -48,7 +44,6 @@ const server = net.createServer((socket) => {
             return;
           }
 
-          // Find the file without considering the extension
           const matchedFile = files.find((file) => file.startsWith(fileName));
 
           if (!matchedFile) {
@@ -60,7 +55,6 @@ const server = net.createServer((socket) => {
 
           const filePath = path.join(directory, matchedFile);
 
-          // Get file stats
           fs.stat(filePath, (err, stats) => {
             if (err || stats.isDirectory()) {
               console.error("Error getting file stats:", err);
@@ -69,7 +63,6 @@ const server = net.createServer((socket) => {
               return;
             }
 
-            // Read the file
             fs.readFile(filePath, (err, data) => {
               if (err) {
                 console.error("Error reading file:", err);
@@ -81,7 +74,6 @@ const server = net.createServer((socket) => {
               const contentType = getMimeType(filePath);
               const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
 
-              // Send header first, then the file data
               socket.write(responseHeader);
               socket.write(data);
               socket.end();
