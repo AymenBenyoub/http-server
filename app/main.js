@@ -1,4 +1,6 @@
 const net = require("net");
+const fs = require("fs");
+const path = require("path");
 
 const server = net.createServer((socket) => {
   socket.on("data", (data) => {
@@ -7,12 +9,18 @@ const server = net.createServer((socket) => {
     const reqLine = req.split("\n")[0];
     const reqPath = reqLine.split(" ")[1];
 
+    // Extract route
     const route = `/${reqPath.split("/")[1]}`;
 
+    // Define responses
+    const okResponse =
+      "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n200 OK";
+    const notFoundResponse =
+      "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found";
+
+    // Process request
     switch (route) {
       case "/": {
-        const okResponse =
-          "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n200 OK";
         socket.write(okResponse);
         break;
       }
@@ -34,15 +42,47 @@ const server = net.createServer((socket) => {
         socket.write(response);
         break;
       }
+      case "/files": {
+        const fileName = reqPath.split("/")[2];
+        const filePath = path.join("C:", "tmp", fileName);
+
+        // Check if the file exists
+        fs.stat(filePath, (err, stats) => {
+          if (err || stats.isDirectory()) {
+            console.error("File not found");
+            socket.write(notFoundResponse);
+            socket.end(); // End socket after sending response
+            return;
+          }
+
+          // Read the file
+          fs.readFile(filePath, (err, data) => {
+            if (err) {
+              console.error("Error reading file");
+              socket.write(notFoundResponse);
+            } else {
+              const contentType = "application/octet-stream";
+              const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
+              // Send header first, then the file data
+              socket.write(responseHeader);
+              socket.write(data);
+            }
+            socket.end(); // Ensure socket is closed after response
+          });
+        });
+        break;
+      }
       default: {
-        const notFoundResponse =
-          "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found";
         socket.write(notFoundResponse);
+        socket.end(); // Ensure socket is closed for unmatched routes
         break;
       }
     }
+  });
 
-    socket.end();
+  socket.on("error", (err) => {
+    console.error("Socket error:", err);
+    socket.destroy(); // Immediately close socket on error
   });
 
   socket.on("close", () => {
