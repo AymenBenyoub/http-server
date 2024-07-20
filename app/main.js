@@ -44,7 +44,7 @@ const server = net.createServer((socket) => {
       }
       case "/files": {
         const fileName = reqPath.split("/")[2];
-        const filePath = path.join("tmp", fileName);
+        const filePath = path.join("/", "tmp", fileName);
 
         fs.stat(filePath, (err, stats) => {
           if (err || stats.isDirectory()) {
