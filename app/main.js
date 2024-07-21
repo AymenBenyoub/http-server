@@ -45,7 +45,8 @@ const server = net.createServer((socket) => {
       case "/files": {
         const fileName = reqPath.split("/")[2];
         const filePath = path.join("/", "tmp", fileName);
-
+        const directory = process.argv[0];
+        console.log(directory);
         fs.stat(filePath, (err, stats) => {
           if (err || stats.isDirectory()) {
             console.error("File not found");
@@ -54,23 +55,23 @@ const server = net.createServer((socket) => {
             return;
           }
 
-          // Read the file
-          fs.readFile(filePath, (err, data) => {
-            if (err) {
-              console.error("Error reading file");
-              socket.write(notFoundResponse);
-            } else {
-              const contentType = "application/octet-stream";
-              const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
+          const data = fs.readFileSync(filePath);
+          // fs.readFile(filePath, (err, data) => {
+          //   if (err) {
+          //     console.error("Error reading file");
+          //     socket.write(notFoundResponse);
+          //   } else {
+          const contentType = "application/octet-stream";
+          const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
 
-              socket.write(responseHeader);
-              socket.write(data);
-            }
-            socket.end();
-          });
+          socket.write(responseHeader);
+          socket.write(data);
+          // }
+          socket.end();
         });
         break;
       }
+
       default: {
         socket.write(notFoundResponse);
         socket.end(); // Ensure socket is closed for unmatched routes
