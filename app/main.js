@@ -2,6 +2,14 @@ const net = require("net");
 const fs = require("fs");
 const path = require("path");
 
+function getOption(optionName) {
+  const index = process.argv.indexOf(optionName);
+  if (index === -1 || index === process.argv.length - 1) {
+    return null;
+  }
+  return process.argv[index + 1];
+}
+
 const server = net.createServer((socket) => {
   socket.on("data", (data) => {
     const req = data.toString();
@@ -44,9 +52,10 @@ const server = net.createServer((socket) => {
       }
       case "/files": {
         const fileName = reqPath.split("/")[2];
-        const filePath = path.join("/", "tmp", fileName);
-        const directory = process.argv[0];
-        console.log(directory);
+
+        const directory = getOption("--directory");
+        const filePath = path.join(directory, fileName);
+        console.log(filePath);
         fs.stat(filePath, (err, stats) => {
           if (err || stats.isDirectory()) {
             console.error("File not found");
@@ -55,23 +64,23 @@ const server = net.createServer((socket) => {
             return;
           }
 
-          const data = fs.readFileSync(filePath);
-          // fs.readFile(filePath, (err, data) => {
-          //   if (err) {
-          //     console.error("Error reading file");
-          //     socket.write(notFoundResponse);
-          //   } else {
-          const contentType = "application/octet-stream";
-          const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
+          // const data = fs.readFileSync(filePath);
+          fs.readFile(filePath, (err, data) => {
+            if (err) {
+              console.error("Error reading file");
+              socket.write(notFoundResponse);
+            } else {
+              const contentType = "application/octet-stream";
+              const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
 
-          socket.write(responseHeader);
-          socket.write(data);
-          // }
-          socket.end();
+              socket.write(responseHeader);
+              socket.write(data);
+            }
+            socket.end();
+          });
         });
         break;
       }
-
       default: {
         socket.write(notFoundResponse);
         socket.end(); // Ensure socket is closed for unmatched routes
