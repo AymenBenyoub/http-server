@@ -23,7 +23,7 @@ const server = net.createServer((socket) => {
     const okResponse =
       "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n200 OK";
     const notFoundResponse =
-      "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n404 Not Found";
+      "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\n";
 
     switch (route) {
       case "/": {
@@ -55,31 +55,43 @@ const server = net.createServer((socket) => {
           const fileName = reqPath.split("/")[2];
 
           const directory = getOption("--directory");
+
           const filePath = path.join(directory, fileName);
+
           console.log(filePath);
+
           fs.stat(filePath, (err, stats) => {
             if (err || stats.isDirectory()) {
               console.error("File not found");
+
               socket.write(notFoundResponse);
+
               socket.end();
+
               return;
             }
 
             // const data = fs.readFileSync(filePath);
+
             fs.readFile(filePath, (err, data) => {
               if (err) {
                 console.error("Error reading file");
+
                 socket.write(notFoundResponse);
               } else {
                 const contentType = "application/octet-stream";
+
                 const responseHeader = `HTTP/1.1 200 OK\r\nContent-Type: ${contentType}\r\nContent-Length: ${stats.size}\r\n\r\n`;
 
                 socket.write(responseHeader);
+
                 socket.write(data);
               }
+
               socket.end();
             });
           });
+          break;
         } else if (httpMethod === "POST") {
           const fileName = reqPath.split("/")[2];
           const data = req.split("\r\n\r\n")[1];
